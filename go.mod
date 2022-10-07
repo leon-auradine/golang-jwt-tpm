@@ -1,4 +1,4 @@
-module github.com/salrashid123/golang-jwt-tpm
+module github.com/leon-auradine/golang-jwt-tpm
 
 go 1.17
 

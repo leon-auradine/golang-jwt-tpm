@@ -251,35 +251,11 @@ func (s *SigningMethodTPM) Sign(signingString string, key interface{}) (string, 
 	}
 	defer kk.Close()
 
-	// first make the TPM hash the data.  We need to do this incase the key is an attestation key
-	//  (ie, a restricted key)
-	digest, hashValidation, err := tpm2.Hash(rwc, tpm2.AlgSHA256, []byte(signingString), tpm2.HandleOwner)
-	if err != nil {
-		return "", fmt.Errorf("Hash failed unexpectedly: %v", err)
-	}
-	// signer cannot sign restricted Attestation keys yet
-	// https://pkg.go.dev/github.com/google/go-tpm-tools@v0.3.1/client#Key.SignData
+	signedBytes, err := kk.SignData([]byte(signingString))
 
-	// cryptoSigner, err := kk.GetSigner()
-	// if err != nil {
-	// 	return "", fmt.Errorf("tpmjwt: can't get Signer %s: %v", config.TPMDevice, err)
-	// }
-	//signedBytes, err := cryptoSigner.Sign(rwc, digest, s.hasher)
-	// if err != nil {
-	// 	return "", fmt.Errorf("tpmjwt: can't Sign %s: %v", config.TPMDevice, err)
-	// }
-
-	// So for now we do this the long way
-	//   https://github.com/salrashid123/tpm2/tree/master/sign_with_ak
-	sig, err := tpm2.Sign(rwc, kk.Handle(), "", digest[:], hashValidation, &tpm2.SigScheme{
-		Alg:  tpm2.AlgRSASSA,
-		Hash: tpm2.AlgSHA256,
-	})
 	if err != nil {
 		return "", fmt.Errorf("failed to sign data: %v", err)
 	}
-
-	signedBytes := []byte(sig.RSA.Signature)
 
 	return base64.RawURLEncoding.EncodeToString(signedBytes), err
 }
