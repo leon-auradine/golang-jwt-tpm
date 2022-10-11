@@ -3,14 +3,10 @@ package tpmjwt
 import (
 	"context"
 	"crypto"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	jwt "github.com/golang-jwt/jwt"
 
@@ -22,11 +18,9 @@ import (
 
 type TPMConfig struct {
 	TPMDevice        string
-	KeyHandleFile    string           // load a key from serialized keyfile
-	KeyHandleNV      uint32           // load the key from persistent handle (TODO) https://github.com/google/go-tpm-tools/blob/master/client/keys.go#L83
 	KeyID            string           // (optional) the TPM keyID (normally the key "Name")
 	KeyTemplate      tpm2.Public      // the specifications for the key
-	publicKeyFromTPM crypto.PublicKey // the public key as read from KeyHandleFile, KeyHandleNV
+	publicKeyFromTPM crypto.PublicKey // the public key from KeyTemplate
 }
 
 type tpmConfigKey struct{}
@@ -40,7 +34,6 @@ func (k *TPMConfig) GetPublicKey() crypto.PublicKey {
 }
 
 var (
-	SigningMethodTPMRS128 *SigningMethodTPM
 	SigningMethodTPMRS256 *SigningMethodTPM
 	errMissingConfig      = errors.New("tpmjwt: missing configuration in provided context")
 	errMissingTPM         = errors.New("tpmjwt: TPM device not available")
@@ -120,32 +113,14 @@ func loadTPM(device string, flush string) (io.ReadWriteCloser, error) {
 	return rwc, nil
 }
 
-func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public, keyHandleFile string, keyHandleNV uint32) (client.Key, error) {
+func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public) (client.Key, error) {
 
-	if keyHandleNV != 0 {
-		return client.Key{}, fmt.Errorf("KeyHandle from NV not supported")
-	}
-	// check if we can load the keyFile
-	khBytes, err := ioutil.ReadFile(keyHandleFile)
-	if err != nil {
-		return client.Key{}, fmt.Errorf("tpmjwt: contextLoad failed for tpmKeyfile: %v", err)
-	}
-	kh, err := tpm2.ContextLoad(rwc, khBytes)
-	if err != nil {
-		return client.Key{}, fmt.Errorf("tpmjwt: contextLoad failed for kh: %v", err)
-	}
-
-	// TODO: somehow compare the provided template val.KeyTemplate to the ones that are supported
-	// (i.,e we dont' support RSAPSS or ECCParameters yet...though its easy to add)
-	//  if "struct containing tpmutil.U16Bytes cannot be compared", for now skip
-	cachedPub, _, _, err := tpm2.ReadPublic(rwc, kh)
+	k, err := client.NewKey(rwc, tpm2.HandleOwner, keyTemplate)
 	if err == nil {
-		if !cachedPub.MatchesTemplate(keyTemplate) {
-			return client.Key{}, fmt.Errorf("tpmjwt: provided key does not match template ")
-		}
+		return client.Key{}, fmt.Errorf("tpmjwt: error gen new key: %v", err)
 	}
 
-	kk, err := client.NewCachedKey(rwc, tpm2.HandleOwner, keyTemplate, kh)
+	kk, err := client.NewCachedKey(rwc, tpm2.HandleOwner, keyTemplate, k.Handle())
 	if err != nil {
 		return client.Key{}, fmt.Errorf("tpmjwt: can't loadcachedkey %v", err)
 	}
@@ -153,40 +128,22 @@ func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public, keyHandleFile stri
 }
 
 func NewTPMContext(parent context.Context, val *TPMConfig) (context.Context, error) {
-
-	// first check if a TPM is even involved in the picture here since we can verify w/o a TPM
-	if val.KeyHandleFile != "" || val.KeyHandleNV != 0 {
-
-		rwc, err := loadTPM(val.TPMDevice, "none")
-		if err != nil {
-			return nil, fmt.Errorf("tpmjwt: error loading TPM: %v", err)
-		}
-		defer rwc.Close()
-
-		kk, err := loadKey(rwc, val.KeyTemplate, val.KeyHandleFile, val.KeyHandleNV)
-		if err != nil {
-			return nil, fmt.Errorf("tpmjwt: error loading Key: %v", err)
-		}
-		defer kk.Close()
-
-		if val.KeyID == "" {
-			key, ok := kk.PublicKey().(*rsa.PublicKey)
-			if ok {
-				der, err := x509.MarshalPKIXPublicKey(key)
-				if err != nil {
-					return nil, fmt.Errorf("tpmjwt: error converting public key: %v", err)
-				}
-				hasher := sha256.New()
-				hasher.Write(der)
-				val.KeyID = base64.RawStdEncoding.EncodeToString(hasher.Sum(nil))
-			}
-			// TODO: check ECkey
-		}
-
-		// Note, we can also 'Just get" the public key here
-		val.publicKeyFromTPM = kk.PublicKey()
-
+	rwc, err := loadTPM(val.TPMDevice, "none")
+	if err != nil {
+		return nil, fmt.Errorf("tpmjwt: error loading TPM: %v", err)
 	}
+	defer rwc.Close()
+
+	k, err := client.NewKey(rwc, tpm2.HandleOwner, val.KeyTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("generated new key %x\n", k.Name().Digest.Value)
+	kh := k.Handle()
+	defer tpm2.FlushContext(rwc, kh)
+
+	val.publicKeyFromTPM = k.PublicKey()
 	return context.WithValue(parent, tpmConfigKey{}, val), nil
 }
 
@@ -245,7 +202,7 @@ func (s *SigningMethodTPM) Sign(signingString string, key interface{}) (string, 
 		return "", fmt.Errorf("tpmjwt: error loading TPM: %v", err)
 	}
 	defer rwc.Close()
-	kk, err := loadKey(rwc, config.KeyTemplate, config.KeyHandleFile, config.KeyHandleNV)
+	kk, err := loadKey(rwc, config.KeyTemplate)
 	if err != nil {
 		return "", fmt.Errorf("tpmjwt: errorloading key %v", err)
 	}

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	tpmjwt "github.com/salrashid123/golang-jwt-tpm"
+	tpmjwt "github.com/leon-auradine/golang-jwt-tpm"
 )
 
 var ()
