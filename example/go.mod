@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/salrashid123/golang-jwt-tpm v0.0.0
+	github.com/leon-auradine/golang-jwt-tpm v0.0.0-20221011173036-9d7a42cc846b
 )
 
 require (

@@ -116,7 +116,7 @@ func loadTPM(device string, flush string) (io.ReadWriteCloser, error) {
 func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public) (client.Key, error) {
 
 	k, err := client.NewKey(rwc, tpm2.HandleOwner, keyTemplate)
-	if err == nil {
+	if err != nil {
 		return client.Key{}, fmt.Errorf("tpmjwt: error gen new key: %v", err)
 	}
 
@@ -199,12 +199,12 @@ func (s *SigningMethodTPM) Sign(signingString string, key interface{}) (string, 
 	rwc, err := loadTPM(config.TPMDevice, "none")
 	if err != nil {
 		defer rwc.Close()
-		return "", fmt.Errorf("tpmjwt: error loading TPM: %v", err)
+		return "", err
 	}
 	defer rwc.Close()
 	kk, err := loadKey(rwc, config.KeyTemplate)
 	if err != nil {
-		return "", fmt.Errorf("tpmjwt: errorloading key %v", err)
+		return "", err
 	}
 	defer kk.Close()
 

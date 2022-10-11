@@ -27,7 +27,7 @@ func main() {
 
 	config := &tpmjwt.TPMConfig{
 		TPMDevice:     "/dev/tpm0",
-		KeyHandleFile: "../util/key.bin",
+		//KeyHandleFile: "../util/key.bin",
 		KeyTemplate:   tpmjwt.AttestationKeyParametersRSA256,
 		//KeyTemplate: tpmjwt.UnrestrictedKeyParametersRSA256,
 	}
@@ -67,5 +67,4 @@ func main() {
 	if v.Valid {
 		log.Println("     verified with exported PubicKey")
 	}
-
 }
