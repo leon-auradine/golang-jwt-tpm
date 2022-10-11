@@ -113,18 +113,8 @@ func loadTPM(device string, flush string) (io.ReadWriteCloser, error) {
 	return rwc, nil
 }
 
-func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public) (client.Key, error) {
-
-	k, err := client.NewKey(rwc, tpm2.HandleOwner, keyTemplate)
-	if err != nil {
-		return client.Key{}, fmt.Errorf("tpmjwt: error gen new key: %v", err)
-	}
-
-	kk, err := client.NewCachedKey(rwc, tpm2.HandleOwner, keyTemplate, k.Handle())
-	if err != nil {
-		return client.Key{}, fmt.Errorf("tpmjwt: can't loadcachedkey %v", err)
-	}
-	return *kk, nil
+func loadKey(rwc io.ReadWriteCloser, keyTemplate tpm2.Public) (*client.Key, error) {
+	return client.NewKey(rwc, tpm2.HandleOwner, keyTemplate)
 }
 
 func NewTPMContext(parent context.Context, val *TPMConfig) (context.Context, error) {
@@ -140,8 +130,7 @@ func NewTPMContext(parent context.Context, val *TPMConfig) (context.Context, err
 	}
 
 	fmt.Printf("generated new key %x\n", k.Name().Digest.Value)
-	kh := k.Handle()
-	defer tpm2.FlushContext(rwc, kh)
+	defer k.Close()
 
 	val.publicKeyFromTPM = k.PublicKey()
 	return context.WithValue(parent, tpmConfigKey{}, val), nil
