@@ -248,8 +248,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
-github.com/leon-auradine/golang-jwt-tpm v0.0.0-20221011173036-9d7a42cc846b h1:TQk0CJCov/nmhee2TVeHl7ga+obNC0PKRp4ARlNZI0c=
-github.com/leon-auradine/golang-jwt-tpm v0.0.0-20221011173036-9d7a42cc846b/go.mod h1:DtZy5Rgj46ycPaoQkf+Pf9uZz9O/XxnZGJNoTgoA8As=
+github.com/leon-auradine/golang-jwt-tpm v0.0.0-20221011180900-ce6fea9e05f7 h1:+27wPRKSa3vNXfLSrqsJwTLe597aGF+h+jk5rZilwYc=
+github.com/leon-auradine/golang-jwt-tpm v0.0.0-20221011180900-ce6fea9e05f7/go.mod h1:DtZy5Rgj46ycPaoQkf+Pf9uZz9O/XxnZGJNoTgoA8As=
 github.com/letsencrypt/pkcs11key/v4 v4.0.0/go.mod h1:EFUvBDay26dErnNb70Nd0/VW3tJiIbETBPTl9ATXQag=
 github.com/lib/pq v1.8.0/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
